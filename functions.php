@@ -436,3 +436,34 @@ function log_communication(int $client_id, string $channel, string $direction, s
         [$client_id, $user_id ?? ($_SESSION['user_id'] ?? null), $channel, $direction, $subject, $body, $status]
     );
 }
+
+// CSRF Protection
+function csrf_field(): string {
+    if (session_status() === PHP_SESSION_NONE) session_start();
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return '<input type="hidden" name="_csrf_token" value="' . htmlspecialchars($_SESSION['csrf_token']) . '">';
+}
+
+function verify_csrf(): void {
+    if (session_status() === PHP_SESSION_NONE) session_start();
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $token = $_POST['_csrf_token'] ?? '';
+        if (empty($token) || !hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
+            die('CSRF token validation failed.');
+        }
+    }
+}
+
+function post_string(string $key, string $default = ''): string {
+    return htmlspecialchars(trim($_POST[$key] ?? $default), ENT_QUOTES, 'UTF-8');
+}
+
+function csrf_token(): string {
+    if (session_status() === PHP_SESSION_NONE) session_start();
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
